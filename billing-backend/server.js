@@ -12,7 +12,7 @@ connectDB();
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://billpro.vercel.app"
+    "https://billing-one-virid.vercel.app"
   ],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
