@@ -1,79 +1,134 @@
 const PDFDocument = require("pdfkit");
 
 module.exports = function generateInvoicePDF(invoice, res) {
-  const doc = new PDFDocument({ margin: 40 });
+  const doc = new PDFDocument({ size: "A4", margin: 40 });
 
+  /* ---------- RESPONSE HEADERS ---------- */
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader(
     "Content-Disposition",
-    `inline; filename=${invoice.invoiceNumber}.pdf`
+    `inline; filename=invoice-${invoice.invoiceNumber}.pdf`
   );
 
   doc.pipe(res);
 
-  /* -------- HEADER -------- */
-  doc.fontSize(20).text("TAX INVOICE", { align: "center" });
-  doc.moveDown();
+  /* ---------- HELPERS ---------- */
+  const drawLine = () => {
+    doc
+      .strokeColor("#e5e7eb")
+      .lineWidth(1)
+      .moveTo(40, doc.y)
+      .lineTo(555, doc.y)
+      .stroke();
+  };
 
-  doc.fontSize(10);
-  doc.text("Your Company Name");
-  doc.text("Address Line, City, State");
-  doc.text("GSTIN: 29ABCDE1234F1Z5");
-  doc.moveDown();
+  /* ---------- HEADER ---------- */
+  doc
+    .fontSize(18)
+    .font("Helvetica-Bold")
+    .text("TAX INVOICE", { align: "right" });
 
-  /* -------- INVOICE INFO -------- */
-  doc.text(`Invoice No: ${invoice.invoiceNumber}`);
-  doc.text(`Date: ${new Date(invoice.createdAt).toLocaleDateString()}`);
-  doc.moveDown();
-
-  /* -------- CUSTOMER -------- */
-  doc.text("Bill To:", { underline: true });
-  doc.text(invoice.customer.name);
-  if (invoice.customer.gstNumber)
-    doc.text(`GSTIN: ${invoice.customer.gstNumber}`);
-  doc.moveDown();
-
-  /* -------- TABLE HEADER -------- */
-  doc.fontSize(10);
-  doc.text("Product", 40, doc.y, { width: 150 });
-  doc.text("Qty", 200, doc.y);
-  doc.text("Rate", 240, doc.y);
-  doc.text("GST%", 300, doc.y);
-  doc.text("Total", 360, doc.y);
-  doc.moveDown();
-
-  doc.moveTo(40, doc.y).lineTo(550, doc.y).stroke();
   doc.moveDown(0.5);
 
-  /* -------- ITEMS -------- */
+  doc
+    .fontSize(10)
+    .font("Helvetica")
+    .text("Your Company Name", 40, 40)
+    .text("Address Line, City, State")
+    .text("GSTIN: 29ABCDE1234F1Z5");
+
+  doc
+    .fontSize(10)
+    .text(`Invoice No: ${invoice.invoiceNumber}`, 380, 70)
+    .text(`Date: ${new Date(invoice.createdAt).toLocaleDateString()}`, 380, 85);
+
+  doc.moveDown(2);
+  drawLine();
+  doc.moveDown();
+
+  /* ---------- BILL TO ---------- */
+  doc.font("Helvetica-Bold").text("Bill To");
+  doc.font("Helvetica").text(invoice.customer.name);
+
+  if (invoice.customer.gstNumber) {
+    doc.text(`GSTIN: ${invoice.customer.gstNumber}`);
+  }
+
+  doc.moveDown(1.5);
+
+  /* ---------- TABLE HEADER ---------- */
+  const tableTop = doc.y;
+
+  doc.font("Helvetica-Bold").fontSize(10);
+  doc.text("Item", 40, tableTop, { width: 180 });
+  doc.text("Qty", 230, tableTop, { width: 50, align: "right" });
+  doc.text("Rate", 290, tableTop, { width: 70, align: "right" });
+  doc.text("GST %", 370, tableTop, { width: 60, align: "right" });
+  doc.text("Amount", 440, tableTop, { width: 100, align: "right" });
+
+  doc.moveDown(0.5);
+  drawLine();
+  doc.moveDown(0.5);
+
+  /* ---------- TABLE ROWS ---------- */
+  doc.font("Helvetica").fontSize(10);
+
   invoice.items.forEach((item) => {
-    doc.text(item.name, 40, doc.y, { width: 150 });
-    doc.text(item.quantity, 200, doc.y);
-    doc.text(`₹${item.price}`, 240, doc.y);
-    doc.text(`${item.gstPercent}%`, 300, doc.y);
-    doc.text(`₹${item.total}`, 360, doc.y);
+    const y = doc.y;
+
+    doc.text(item.name, 40, y, { width: 180 });
+    doc.text(item.quantity, 230, y, { width: 50, align: "right" });
+    doc.text(`₹${item.price}`, 290, y, { width: 70, align: "right" });
+    doc.text(`${item.gstPercent}%`, 370, y, { width: 60, align: "right" });
+    doc.text(`₹${item.total}`, 440, y, { width: 100, align: "right" });
+
     doc.moveDown();
   });
 
-  doc.moveDown();
-  doc.moveTo(40, doc.y).lineTo(550, doc.y).stroke();
-  doc.moveDown();
+  doc.moveDown(0.5);
+  drawLine();
+  doc.moveDown(1);
 
-  /* -------- TOTALS -------- */
-  doc.text(`Sub Total: ₹${invoice.subTotal}`, { align: "right" });
-  doc.text(`GST: ₹${invoice.gstTotal}`, { align: "right" });
-  doc.fontSize(12).text(
-    `Grand Total: ₹${invoice.grandTotal}`,
-    { align: "right" }
-  );
+  /* ---------- TOTALS BOX ---------- */
+  const totalsX = 340;
 
-  doc.moveDown(2);
+  doc.font("Helvetica").fontSize(10);
+  doc.text("Subtotal:", totalsX, doc.y, { width: 100 });
+  doc.text(`₹${invoice.subTotal}`, totalsX + 120, doc.y, {
+    width: 100,
+    align: "right",
+  });
 
-  /* -------- FOOTER -------- */
-  doc.fontSize(9).text(
-    "This is a computer generated invoice.",
-    { align: "center" }
-  );
+  doc.moveDown(0.5);
+  doc.text("GST:", totalsX, doc.y, { width: 100 });
+  doc.text(`₹${invoice.gstTotal}`, totalsX + 120, doc.y, {
+    width: 100,
+    align: "right",
+  });
+
+  doc.moveDown(0.5);
+  drawLine();
+
+  doc.font("Helvetica-Bold").fontSize(12);
+  doc.text("Grand Total:", totalsX, doc.y + 5, { width: 120 });
+  doc.text(`₹${invoice.grandTotal}`, totalsX + 120, doc.y + 5, {
+    width: 100,
+    align: "right",
+  });
+
+  doc.moveDown(3);
+
+  /* ---------- FOOTER ---------- */
+  doc
+    .fontSize(9)
+    .font("Helvetica")
+    .fillColor("#6b7280")
+    .text(
+      "This is a computer-generated invoice. No signature required.",
+      40,
+      780,
+      { align: "center", width: 515 }
+    );
 
   doc.end();
 };
