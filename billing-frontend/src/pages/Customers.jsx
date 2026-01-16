@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
+import { UserPlus, Phone, MapPin } from "lucide-react";
 
 export default function Customers() {
   const [customers, setCustomers] = useState([]);
@@ -7,7 +8,7 @@ export default function Customers() {
     name: "",
     phone: "",
     gstNumber: "",
-    address: ""
+    address: "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -30,69 +31,119 @@ export default function Customers() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Customers</h1>
-        <p className="text-gray-400 text-sm">Manage your customer base</p>
+    <div className="space-y-8">
+
+      {/* HEADER */}
+      <div className="flex items-center gap-3">
+        <div className="p-3 rounded-xl bg-blue-500/20 border border-white/10">
+          <UserPlus className="text-blue-400" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-white">Customers</h1>
+          <p className="text-gray-400 text-sm">
+            Manage your customer base
+          </p>
+        </div>
       </div>
 
-      {/* Add Customer */}
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5">
+      {/* ADD CUSTOMER */}
+      <div className="rounded-xl border border-white/10 bg-white/5 p-5">
         <h3 className="text-white font-semibold mb-4">Add Customer</h3>
+
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <input
             placeholder="Customer name"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="bg-transparent border border-white/20 rounded-lg px-4 py-2
-              text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input"
           />
           <input
             placeholder="Phone"
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            className="bg-transparent border border-white/20 rounded-lg px-4 py-2
-              text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input"
           />
           <input
             placeholder="GST Number (optional)"
             value={form.gstNumber}
-            onChange={(e) => setForm({ ...form, gstNumber: e.target.value })}
-            className="bg-transparent border border-white/20 rounded-lg px-4 py-2
-              text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={(e) =>
+              setForm({ ...form, gstNumber: e.target.value })
+            }
+            className="input"
           />
           <input
             placeholder="Address"
             value={form.address}
             onChange={(e) => setForm({ ...form, address: e.target.value })}
-            className="bg-transparent border border-white/20 rounded-lg px-4 py-2
-              text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input"
           />
         </div>
+
         <button
           onClick={addCustomer}
           disabled={loading}
           className={`mt-4 inline-flex items-center rounded-lg px-5 py-2 font-semibold
-            ${loading
+          ${
+            loading
               ? "bg-gray-500"
-              : "bg-gradient-to-r from-blue-500 to-purple-600 hover:opacity-90"}`}
+              : "bg-gradient-to-r from-blue-500 to-purple-600 hover:opacity-90"
+          }`}
         >
           {loading ? "Saving..." : "Add Customer"}
         </button>
       </div>
 
-      {/* Customers Table */}
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-white/5 text-gray-300 text-sm">
+      {/* ================= MOBILE VIEW ================= */}
+      <div className="md:hidden space-y-4">
+        {customers.map((c) => (
+          <div
+            key={c._id}
+            className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-2"
+          >
+            <div className="font-semibold text-white">{c.name}</div>
+
+            <div className="flex items-center gap-2 text-sm text-gray-300">
+              <Phone size={14} /> {c.phone}
+            </div>
+
+            {c.address && (
+              <div className="flex items-start gap-2 text-sm text-gray-300">
+                <MapPin size={14} className="mt-0.5" /> {c.address}
+              </div>
+            )}
+
+            <div className="pt-2">
+              {c.gstNumber ? (
+                <span className="inline-flex rounded-full px-3 py-1 text-xs font-semibold
+                bg-emerald-500/20 text-emerald-300">
+                  GST: {c.gstNumber}
+                </span>
+              ) : (
+                <span className="text-gray-500 text-xs">No GST</span>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {customers.length === 0 && (
+          <div className="text-center text-gray-400 py-8">
+            No customers found
+          </div>
+        )}
+      </div>
+
+      {/* ================= DESKTOP TABLE ================= */}
+      <div className="hidden md:block rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+        <table className="w-full text-sm table-fixed">
+          <thead className="bg-white/5 text-gray-300">
             <tr>
-              <th className="px-5 py-4">Name</th>
-              <th className="px-5 py-4">Phone</th>
-              <th className="px-5 py-4">GST</th>
-              <th className="px-5 py-4">Address</th>
+              <th className="px-5 py-4 w-[20%] text-left">Name</th>
+              <th className="px-5 py-4 w-[20%] text-left">Phone</th>
+              <th className="px-5 py-4 w-[20%] text-left">GST</th>
+              <th className="px-5 py-4 w-[40%] text-left">Address</th>
             </tr>
           </thead>
+
           <tbody>
             {customers.map((c) => (
               <tr
@@ -108,7 +159,7 @@ export default function Customers() {
                 <td className="px-5 py-4">
                   {c.gstNumber ? (
                     <span className="inline-flex rounded-full px-3 py-1 text-xs font-semibold
-                      bg-emerald-500/20 text-emerald-300">
+                    bg-emerald-500/20 text-emerald-300">
                       {c.gstNumber}
                     </span>
                   ) : (
@@ -120,9 +171,13 @@ export default function Customers() {
                 </td>
               </tr>
             ))}
+
             {customers.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-5 py-8 text-center text-gray-400">
+                <td
+                  colSpan={4}
+                  className="px-5 py-8 text-center text-gray-400"
+                >
                   No customers found
                 </td>
               </tr>

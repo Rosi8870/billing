@@ -10,19 +10,21 @@ export default function CreateInvoice() {
   const [products, setProducts] = useState([]);
   const [customerId, setCustomerId] = useState("");
   const [items, setItems] = useState([
-    { productId: "", qty: 1, price: 0, gst: 0, total: 0 }
+    { productId: "", qty: 1, price: 0, gst: 0, total: 0 },
   ]);
   const [saving, setSaving] = useState(false);
 
   const toast = useToast();
 
+  /* ---------------- LOAD DATA ---------------- */
   useEffect(() => {
-    api.get("/customers").then(r => setCustomers(r.data));
-    api.get("/products").then(r => setProducts(r.data));
+    api.get("/customers").then((r) => setCustomers(r.data));
+    api.get("/products").then((r) => setProducts(r.data));
   }, []);
 
+  /* ---------------- CALCULATIONS ---------------- */
   const recalcRow = (row) => {
-    const p = products.find(x => x._id === row.productId);
+    const p = products.find((x) => x._id === row.productId);
     if (!p) return { ...row, price: 0, gst: 0, total: 0 };
 
     const amount = p.price * row.qty;
@@ -32,22 +34,25 @@ export default function CreateInvoice() {
       ...row,
       price: p.price,
       gst: p.gstPercent || 0,
-      total: amount + gstAmt
+      total: amount + gstAmt,
     };
   };
 
   const updateRow = (i, patch) => {
-    setItems(items.map((r, idx) =>
-      idx === i ? recalcRow({ ...r, ...patch }) : r
-    ));
+    setItems((prev) =>
+      prev.map((r, idx) => (idx === i ? recalcRow({ ...r, ...patch }) : r))
+    );
   };
 
   const addRow = () => {
-    setItems([...items, { productId: "", qty: 1, price: 0, gst: 0, total: 0 }]);
+    setItems((prev) => [
+      ...prev,
+      { productId: "", qty: 1, price: 0, gst: 0, total: 0 },
+    ]);
   };
 
   const removeRow = (i) => {
-    setItems(items.filter((_, idx) => idx !== i));
+    setItems((prev) => prev.filter((_, idx) => idx !== i));
   };
 
   const totals = useMemo(() => {
@@ -59,9 +64,10 @@ export default function CreateInvoice() {
     return { sub, gst, grand: sub + gst };
   }, [items]);
 
+  /* ---------------- SAVE ---------------- */
   const saveInvoice = async () => {
     if (!customerId || items.length === 0) {
-      toast.show("error", "Select customer and items");
+      toast.show("error", "Select customer and add items");
       return;
     }
 
@@ -69,10 +75,10 @@ export default function CreateInvoice() {
     try {
       await api.post("/invoices", {
         customerId,
-        items: items.map(r => ({
+        items: items.map((r) => ({
           productId: r.productId,
-          quantity: r.qty
-        }))
+          quantity: r.qty,
+        })),
       });
       toast.show("success", "Invoice created successfully");
     } catch {
@@ -85,9 +91,9 @@ export default function CreateInvoice() {
   return (
     <div className="space-y-8">
 
-      {/* PAGE HEADER */}
+      {/* HEADER */}
       <div className="flex items-center gap-3">
-        <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-white/10">
+        <div className="p-3 rounded-xl bg-blue-500/20 border border-white/10">
           <Receipt className="text-blue-400" />
         </div>
         <div>
@@ -98,96 +104,152 @@ export default function CreateInvoice() {
         </div>
       </div>
 
-      {/* CUSTOMER CARD */}
-      <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/2 p-5 shadow-lg">
-        <h3 className="text-white font-semibold mb-3">Customer Details</h3>
+      {/* CUSTOMER */}
+      <div className="rounded-xl border border-white/10 bg-white/5 p-5">
+        <h3 className="text-white font-semibold mb-3">Customer</h3>
         <Dropdown
           placeholder="Select customer"
           value={customerId}
           onChange={setCustomerId}
-          options={customers.map(c => ({
+          options={customers.map((c) => ({
             value: c._id,
-            label: c.name
+            label: c.name,
           }))}
         />
       </div>
 
-      {/* ITEMS CARD */}
-      <div className="relative rounded-xl border border-white/10 bg-white/5 overflow-x-auto">
+      {/* ITEMS */}
+      <div className="rounded-xl border border-white/10 bg-white/5">
 
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-          <h3 className="text-white font-semibold">Invoice Items</h3>
+        {/* ITEMS HEADER */}
+        <div className="flex justify-between items-center px-5 py-4 border-b border-white/10">
+          <h3 className="text-white font-semibold">Items</h3>
           <button
             onClick={addRow}
-            className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg
-            bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 transition"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg
+            bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 transition"
           >
             <Plus size={14} /> Add Item
           </button>
         </div>
 
-        <table className="w-full min-w-[800px] text-sm">
-          <thead className="bg-white/5 text-gray-400">
-            <tr>
-              <th className="px-4 py-3 text-left">Product</th>
-              <th className="px-4 py-3 w-20">Qty</th>
-              <th className="px-4 py-3 w-20">Price</th>
-              <th className="px-4 py-3 w-20">GST</th>
-              <th className="px-4 py-3 w-24">Total</th>
-              <th className="px-4 py-3 w-12"></th>
-            </tr>
-          </thead>
+        {/* ========== MOBILE VIEW ========== */}
+        <div className="md:hidden p-4 space-y-4">
+          {items.map((r, i) => (
+            <div
+              key={i}
+              className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3"
+            >
+              <Dropdown
+                placeholder="Select product"
+                value={r.productId}
+                onChange={(val) => updateRow(i, { productId: val })}
+                options={products.map((p) => ({
+                  value: p._id,
+                  label: p.name,
+                }))}
+              />
 
-          <tbody>
-            {items.map((r, i) => (
-              <tr
-                key={i}
-                className="border-t border-white/10 hover:bg-white/5 transition"
-              >
-                <td className="px-4 py-3 w-64">
-                  <Dropdown
-                    placeholder="Select product"
-                    value={r.productId}
-                    onChange={(val) => updateRow(i, { productId: val })}
-                    options={products.map(p => ({
-                      value: p._id,
-                      label: p.name
-                    }))}
-                  />
-                </td>
+              <div className="flex gap-3">
+                <Input
+                  type="number"
+                  min="1"
+                  value={r.qty}
+                  onChange={(e) =>
+                    updateRow(i, { qty: Number(e.target.value) })
+                  }
+                />
+                <div className="flex-1 text-sm text-gray-300 flex items-center">
+                  ₹{r.price} · GST {r.gst}%
+                </div>
+              </div>
 
-                <td className="px-4 py-3">
-                  <Input
-                    className="h-9 text-sm"
-                    type="number"
-                    min="1"
-                    value={r.qty}
-                    onChange={e => updateRow(i, { qty: Number(e.target.value) })}
-                  />
-                </td>
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-white">
+                  Total: ₹{r.total}
+                </span>
+                <button
+                  onClick={() => removeRow(i)}
+                  className="text-red-400"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
 
-                <td className="px-4 py-3 text-gray-300">₹{r.price}</td>
-                <td className="px-4 py-3 text-gray-300">{r.gst}%</td>
-                <td className="px-4 py-3 font-semibold text-white">
-                  ₹{r.total}
-                </td>
-
-                <td className="px-4 py-3">
-                  <button
-                    onClick={() => removeRow(i)}
-                    className="text-red-400 hover:text-red-500"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </td>
+        {/* ========== DESKTOP TABLE ========== */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-sm table-fixed">
+            <thead className="bg-white/5 text-gray-400">
+              <tr>
+                <th className="px-4 py-3 w-[40%] text-left">Product</th>
+                <th className="px-4 py-3 w-[10%] text-right">Qty</th>
+                <th className="px-4 py-3 w-[15%] text-right">Price</th>
+                <th className="px-4 py-3 w-[10%] text-right">GST</th>
+                <th className="px-4 py-3 w-[15%] text-right">Total</th>
+                <th className="px-4 py-3 w-[10%]"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {items.map((r, i) => (
+                <tr key={i} className="border-t border-white/10">
+                  <td className="px-4 py-3">
+                    <Dropdown
+                      placeholder="Select product"
+                      value={r.productId}
+                      onChange={(val) =>
+                        updateRow(i, { productId: val })
+                      }
+                      options={products.map((p) => ({
+                        value: p._id,
+                        label: p.name,
+                      }))}
+                    />
+                  </td>
+
+                  <td className="px-4 py-3 text-right">
+                    <Input
+                      type="number"
+                      min="1"
+                      value={r.qty}
+                      onChange={(e) =>
+                        updateRow(i, { qty: Number(e.target.value) })
+                      }
+                    />
+                  </td>
+
+                  <td className="px-4 py-3 text-right text-gray-300">
+                    ₹{r.price}
+                  </td>
+
+                  <td className="px-4 py-3 text-right text-gray-300">
+                    {r.gst}%
+                  </td>
+
+                  <td className="px-4 py-3 text-right font-semibold text-white">
+                    ₹{r.total}
+                  </td>
+
+                  <td className="px-4 py-3 text-center">
+                    <button
+                      onClick={() => removeRow(i)}
+                      className="text-red-400"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* SUMMARY + ACTION */}
-      <div className="max-w-md rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-white/2 p-6 shadow-xl">
+      {/* SUMMARY */}
+      <div className="max-w-md rounded-xl border border-white/10 bg-white/5 p-6">
         <div className="space-y-2 text-gray-300 text-sm">
           <div className="flex justify-between">
             <span>Subtotal</span>
@@ -201,7 +263,7 @@ export default function CreateInvoice() {
 
         <div className="my-4 h-px bg-white/10" />
 
-        <div className="flex justify-between text-white text-lg font-bold">
+        <div className="flex justify-between text-white font-bold text-lg">
           <span>Total</span>
           <span>₹{totals.grand}</span>
         </div>
@@ -210,8 +272,7 @@ export default function CreateInvoice() {
           onClick={saveInvoice}
           disabled={saving}
           className="mt-6 w-full rounded-xl py-3 font-semibold text-white
-          bg-gradient-to-r from-blue-500 to-purple-600 hover:opacity-90
-          shadow-lg shadow-blue-500/30"
+          bg-gradient-to-r from-blue-500 to-purple-600 hover:opacity-90"
         >
           {saving ? "Saving..." : "Create Invoice"}
         </button>
