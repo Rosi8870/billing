@@ -14,8 +14,10 @@ export default function Invoices() {
   }, []);
 
   const downloadPDF = (id) => {
-    window.open(`http://localhost:5000/api/invoices/${id}/pdf`);
-  };
+  const pdfUrl = `${import.meta.env.VITE_API_URL}/invoices/${id}/pdf`;
+  window.open(pdfUrl, "_blank");
+};
+
 
   return (
     <div className="space-y-6">
